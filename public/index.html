@@ -1,430 +1,60 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Himitsu Online</title>
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --primary: #3b82f6;
-            --primary-hover: #2563eb;
-            --text-color: #f8fafc;
-            --accent: #10b981;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-        h1 { margin-bottom: 10px; color: var(--primary); }
-        .setup-container, .room-container {
-            width: 100%;
-            max-width: 1200px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .setup-container {
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            text-align: center;
-            max-width: 400px;
-            margin-top: 50px;
-        }
-        input, button {
-            padding: 10px 15px;
-            font-size: 1rem;
-            border-radius: 8px;
-            border: 1px solid #475569;
-            background: #334155;
-            color: white;
-            outline: none;
-            width: 100%;
-            box-sizing: border-box;
-            margin-top: 10px;
-        }
-        button {
-            background: var(--primary);
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-        button:hover { background: var(--primary-hover); }
-        .hidden { display: none !important; }
-
-        .main-layout {
-            display: grid;
-            grid-template-columns: 1fr 320px;
-            gap: 20px;
-            width: 100%;
-        }
-        @media (max-width: 900px) {
-            .main-layout { grid-template-columns: 1fr; }
-        }
-
-        .main-viewer {
-            background: var(--card-bg);
-            border-radius: 12px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-        }
-        .main-video-container {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 16/9;
-            background: black;
-        }
-        .main-video-container video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .video-overlay-info {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            background: rgba(0,0,0,0.6);
-            padding: 5px 12px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            backdrop-filter: blur(4px);
-        }
-        .viewer-controls {
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #1e293b;
-            gap: 10px;
-        }
-        .viewer-controls button {
-            width: auto;
-            margin-top: 0;
-        }
-
-        .sidebar {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        .sidebar h3 { margin: 0 0 10px 0; font-size: 1.1rem; border-bottom: 1px solid #475569; padding-bottom: 8px; }
-        
-        .thumbnail-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .thumbnail-card {
-            background: #0f172a;
-            border: 2px solid transparent;
-            border-radius: 8px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .thumbnail-card:hover {
-            border-color: var(--primary);
-        }
-        .thumbnail-card.selected {
-            border-color: var(--accent);
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
-        }
-        .thumbnail-card video {
-            width: 100%;
-            aspect-ratio: 16/9;
-            object-fit: cover;
-            display: block;
-        }
-        .thumbnail-label {
-            padding: 6px 10px;
-            font-size: 0.85rem;
-            background: rgba(15, 23, 42, 0.9);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .control-bar {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-            flex-wrap: wrap;
-        }
-        .control-bar button {
-            width: auto;
-            margin-top: 0;
-        }
-    </style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101014"><title>Himitsu — Salas</title>
+<style>
+:root{--bg:#101014;--panel:#1b1a22;--panel2:#24222d;--line:#393543;--text:#f5f3fa;--muted:#aaa5b8;--purple:#7c3aed;--lilac:#c4b5fd;--green:#4ade80}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#33204f,#101014 65%);color:var(--text);font:15px system-ui, sans-serif;min-height:100vh}button,input{font:inherit}button{border:0;border-radius:10px;padding:11px 15px;background:var(--purple);color:white;font-weight:650;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#302d39;border:1px solid var(--line)}.danger{background:#6b2639}.wrap{max-width:1180px;margin:auto;padding:22px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:40px}.brand{font-weight:900;letter-spacing:.18em;font-size:21px}.status{color:var(--green);font-size:12px}.hero{text-align:center;max-width:650px;margin:50px auto 28px}.eyebrow{color:var(--lilac);letter-spacing:.2em;font-size:11px;font-weight:800}.hero h1{font-size:clamp(36px,7vw,58px);line-height:1.05;margin:12px 0}.hero p,.muted{color:var(--muted)}.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:720px;margin:auto}.card,.side{background:linear-gradient(145deg,#201e29,#17161d);border:1px solid var(--line);border-radius:17px;padding:22px}.card h3{margin:0 0 8px}.card p{color:var(--muted);font-size:13px;min-height:38px}.row{display:flex;gap:8px}.row input,.nameinput{width:100%;min-width:0;background:#111116;color:white;border:1px solid var(--line);padding:11px;border-radius:9px;outline:none}.room{display:none}.roomhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.roomhead h2{margin:0}.tools{display:flex;gap:8px}.layout{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:15px}.stage{position:relative;background:#07070a;border:1px solid var(--line);border-radius:15px;aspect-ratio:16/9;display:grid;place-items:center;overflow:hidden}.stage video{width:100%;height:100%;object-fit:contain}.empty{text-align:center;color:var(--muted);padding:20px}.empty b{display:block;color:var(--lilac);font-size:30px}.stagebar{position:absolute;bottom:10px;left:10px;right:10px;display:flex;justify-content:space-between;pointer-events:none}.stagebar span,.stagebar button{pointer-events:auto;background:#09090dcc;border-radius:8px;padding:7px 10px;font-size:12px}.streams{display:flex;gap:10px;overflow:auto;padding:12px 0}.tile{flex:0 0 150px;border:1px solid var(--line);background:var(--panel);border-radius:11px;padding:8px;color:white;text-align:left}.tile.active{border-color:var(--lilac)}.tile video{width:100%;height:75px;object-fit:cover;background:#08080b;border-radius:7px}.sharetools{display:flex;gap:8px;flex-wrap:wrap}.side h3{margin:0 0 12px}.person{padding:8px 0;border-bottom:1px solid #302d39;font-size:13px}.pill{color:var(--lilac);font-size:11px}.notice{background:#24202e;border:1px solid #40364f;border-radius:10px;padding:11px;color:var(--muted);font-size:12px;margin-top:14px}.modalbg{display:none;position:fixed;inset:0;background:#000b;align-items:center;justify-content:center;padding:16px;z-index:5}.modal{width:min(420px,100%);background:#1d1b25;border:1px solid #4b4359;border-radius:16px;padding:22px}.modal h3{margin-top:0}.modal label{display:flex;gap:9px;align-items:center;margin:14px 0}.modal input[type=checkbox]{accent-color:var(--purple);width:18px;height:18px}.modalfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#302b3b;border:1px solid #51465f;padding:10px 14px;border-radius:10px;display:none;z-index:8}
+@media(max-width:740px){.wrap{padding:15px}.cards,.layout{grid-template-columns:1fr}.hero{margin-top:30px}.roomhead{align-items:flex-start;flex-direction:column}.tools{width:100%}.tools button{flex:1}.side{order:2}.stage{aspect-ratio:4/3}}
+</style>
 </head>
-<body>
-
-    <h1>Himitsu Online</h1>
-
-    <!-- Tela de configuração / Entrar na sala -->
-    <div id="setupContainer" class="setup-container">
-        <h2>Entrar na Sala</h2>
-        <input type="text" id="roomInput" placeholder="Digite o ID da sala" value="sala-principal">
-        <button id="joinBtn">Entrar na Sala</button>
-    </div>
-
-    <!-- Tela da Sala -->
-    <div id="roomContainer" class="room-container hidden">
-        <div class="control-bar">
-            <button id="toggleAudioBtn">Desativar Áudio</button>
-            <button id="toggleVideoBtn">Desativar Vídeo</button>
-            <span id="roomInfo" style="align-self: center; margin-left: auto; font-weight: bold;"></span>
-        </div>
-
-        <div class="main-layout">
-            <!-- Visualizador Principal -->
-            <div class="main-viewer">
-                <div class="main-video-container" id="mainVideoContainer">
-                    <video id="mainVideo" autoplay playsinline></video>
-                    <div class="video-overlay-info" id="mainVideoLabel">Nenhuma transmissão selecionada</div>
-                </div>
-                <div class="viewer-controls">
-                    <span id="selectedUserStatus" style="font-size: 0.9rem; color: #94a3b8;">Clique em uma miniatura ao lado para exibir em destaque.</span>
-                    <button id="fullscreenBtn">Tela Cheia</button>
-                </div>
-            </div>
-
-            <!-- Miniaturas / Participantes -->
-            <div class="sidebar">
-                <h3>Transmissões Disponíveis</h3>
-                <div class="thumbnail-grid" id="thumbnailGrid">
-                    <!-- Miniaturas geradas dinamicamente -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Socket.io client -->
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-
-        const setupContainer = document.getElementById('setupContainer');
-        const roomContainer = document.getElementById('roomContainer');
-        const roomInput = document.getElementById('roomInput');
-        const joinBtn = document.getElementById('joinBtn');
-        const roomInfo = document.getElementById('roomInfo');
-
-        const mainVideo = document.getElementById('mainVideo');
-        const mainVideoLabel = document.getElementById('mainVideoLabel');
-        const mainVideoContainer = document.getElementById('mainVideoContainer');
-        const fullscreenBtn = document.getElementById('fullscreenBtn');
-        const thumbnailGrid = document.getElementById('thumbnailGrid');
-
-        const toggleAudioBtn = document.getElementById('toggleAudioBtn');
-        const toggleVideoBtn = document.getElementById('toggleVideoBtn');
-
-        let localStream;
-        let roomID;
-        let peers = {}; // Armazena conexões por ID de socket
-        let selectedPeerID = null;
-
-        const iceServers = {
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-        };
-
-        joinBtn.addEventListener('click', async () => {
-            roomID = roomInput.value.trim();
-            if (!roomID) return alert('Digite um ID de sala válido.');
-
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            } catch (err) {
-                console.error('Erro ao acessar câmera/microfone:', err);
-                alert('Não foi possível acessar a câmera ou microfone. Verifique as permissões.');
-                return;
-            }
-
-            setupContainer.classList.add('hidden');
-            roomContainer.classList.remove('hidden');
-            roomInfo.textContent = `Sala: ${roomID}`;
-
-            socket.emit('join-room', roomID);
-
-            socket.on('user-joined', id => {
-                console.log('Novo usuário entrou:', id);
-                createPeerConnection(id, true);
-            });
-
-            socket.on('offer', async payload => {
-                const pc = createPeerConnection(payload.callerID, false);
-                await pc.setRemoteDescription(new RTCSessionDescription(payload.signal));
-                const answer = await pc.createAnswer();
-                await pc.setLocalDescription(answer);
-                socket.emit('answer', { target: payload.callerID, signal: answer });
-            });
-
-            socket.on('answer', async payload => {
-                const pc = peers[payload.id]?.pc;
-                if (pc) {
-                    await pc.setRemoteDescription(new RTCSessionDescription(payload.signal));
-                }
-            });
-
-            socket.on('ice-candidate', incoming => {
-                const pc = peers[incoming.id]?.pc;
-                if (pc && incoming.candidate) {
-                    pc.addIceCandidate(new RTCIceCandidate(incoming.candidate));
-                }
-            });
-
-            socket.on('user-disconnected', id => {
-                console.log('Usuário desconectado:', id);
-                if (peers[id]) {
-                    if (peers[id].element) peers[id].element.remove();
-                    if (selectedPeerID === id) {
-                        mainVideo.srcObject = null;
-                        mainVideoLabel.textContent = 'Transmissão encerrada';
-                        selectedPeerID = null;
-                    }
-                    if (peers[id].pc) peers[id].pc.close();
-                    delete peers[id];
-                }
-            });
-        });
-
-        function createPeerConnection(id, initiator) {
-            const pc = new RTCPeerConnection(iceServers);
-            peers[id] = { pc, stream: null, element: null };
-
-            localStream.getTracks().forEach(track => {
-                pc.addTrack(track, localStream);
-            });
-
-            pc.onicecandidate = event => {
-                if (event.candidate) {
-                    socket.emit('mesh-candidate' in socket ? '' : 'ice-candidate', { target: id, candidate: event.candidate });
-                }
-            };
-
-            // Ajuste robusto para ICE candidate
-            pc.onicecandidate = event => {
-                if (event.candidate) {
-                    socket.emit('ice-candidate', { target: id, candidate: event.candidate });
-                }
-            };
-
-            pc.ontrack = event => {
-                console.log('Stream recebido de:', id);
-                peers[id].stream = event.streams[0];
-                addThumbnail(id, event.streams[0]);
-            };
-
-            if (initiator) {
-                pc.onnegotiationneeded = async () => {
-                    try {
-                        const offer = await pc.createOffer();
-                        await pc.setLocalDescription(offer);
-                        socket.emit('offer', { target: id, signal: offer });
-                    } catch (err) {
-                        console.error('Erro na negociação:', err);
-                    }
-                };
-            }
-
-            return pc;
-        }
-
-        function addThumbnail(id, stream) {
-            if (document.getElementById(`thumb-${id}`)) return;
-
-            const card = document.createElement('div');
-            card.className = 'thumbnail-card';
-            card.id = `thumb-${id}`;
-
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            video.autoplay = true;
-            video.playsInline = true;
-            video.muted = true; // Mutado na miniatura para evitar microfonia/eco
-
-            const label = document.createElement('div');
-            label.className = 'thumbnail-label';
-            label.textContent = `Participante (${id.substr(0, 5)})`;
-
-            card.appendChild(video);
-            card.appendChild(label);
-            thumbnailGrid.appendChild(card);
-
-            peers[id].element = card;
-
-            // Evento de clique para alternar visualização na tela principal
-            card.addEventListener('click', () => {
-                selectMainStream(id, stream, label.textContent);
-            });
-
-            // Seleciona automaticamente o primeiro participante que entrar, caso nenhum esteja selecionado
-            if (!selectedPeerID) {
-                selectMainStream(id, stream, label.textContent);
-            }
-        }
-
-        function selectMainStream(id, stream, name) {
-            document.querySelectorAll('.thumbnail-card').forEach(c => c.classList.remove('selected'));
-            
-            const card = document.getElementById(`thumb-${id}`);
-            if (card) card.classList.add('selected');
-
-            selectedPeerID = id;
-            mainVideo.srcObject = stream;
-            mainVideoLabel.textContent = `Assistindo: ${name}`;
-        }
-
-        // Funcionalidade de Tela Cheia
-        fullscreenBtn.addEventListener('click', () => {
-            if (!document.fullscreenElement) {
-                if (mainVideoContainer.requestFullscreen) {
-                    mainVideoContainer.requestFullscreen();
-                } else if (mainVideoContainer.webkitRequestFullscreen) {
-                    mainVideoContainer.webkitRequestFullscreen();
-                } else if (mainVideoContainer.msRequestFullscreen) {
-                    mainVideoContainer.msRequestFullscreen();
-                }
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
-            }
-        });
-
-        // Controles de áudio e vídeo individuais
-        let audioEnabled = true;
-        toggleAudioBtn.addEventListener('click', () => {
-            audioEnabled = !audioEnabled;
-            localStream.getAudioTracks()[0].enabled = audioEnabled;
-            toggleAudioBtn.textContent = audioEnabled ? 'Desativar Áudio' : 'Ativar Áudio';
-            toggleAudioBtn.style.background = audioEnabled ? '#3b82f6' : '#ef4444';
-        });
-
-        let videoEnabled = true;
-        toggleVideoBtn.addEventListener('click', () => {
-            videoEnabled = !videoEnabled;
-            localStream.getVideoTracks()[0].enabled = videoEnabled;
-            toggleVideoBtn.textContent = videoEnabled ? 'Desativar Vídeo' : 'Ativar Vídeo';
-            toggleVideoBtn.style.background = videoEnabled ? '#3b82f6' : '#ef4444';
-        });
-    </script>
-</body>
-</html>
+<body><div class="wrap">
+<header class="top"><div class="brand">◈ HIMITSU</div><div class="status" id="connection">● Conectando...</div></header>
+<main id="home">
+<section class="hero"><div class="eyebrow">SCREEN SHARING PLATFORM</div><h1>Sua tela. Sua sala.<br><span style="color:#a78bfa">Sua conexão.</span></h1><p>Crie uma sala ou entre com um código para compartilhar telas com seu grupo.</p></section>
+<section class="cards">
+<div class="card"><h3>Criar uma sala</h3><p>Gere um código e convide seus participantes.</p><button id="create">Criar sala</button></div>
+<div class="card"><h3>Entrar em uma sala</h3><p>Use o código recebido do anfitrião.</p><div class="row"><input id="codeInput" placeholder="Código da sala" maxlength="8"><button id="join">Entrar</button></div></div>
+</section><p class="muted" style="text-align:center;font-size:12px;margin-top:28px">Use um apelido para aparecer na sala.</p>
+</main>
+<main class="room" id="room">
+<div class="roomhead"><div><h2 id="roomTitle">Sala</h2><div class="muted" style="font-size:12px" id="roomMeta"></div></div><div class="tools"><button class="secondary" id="copy">Copiar convite</button><button class="secondary" id="leave">Sair</button></div></div>
+<div class="layout"><section>
+<div class="stage" id="stage"><div class="empty" id="empty"><b>▣</b>Nenhuma transmissão selecionada</div><div class="stagebar" id="stagebar" style="display:none"><span id="stageName"></span><button id="fullscreen">⛶ Tela cheia</button></div></div>
+<div class="streams" id="streams"></div>
+<div class="sharetools"><button id="share">▣ Compartilhar tela</button><button class="danger" id="stop" disabled>Parar transmissão</button></div>
+<div class="notice"><b>Áudio:</b> o navegador pode compartilhar o áudio da aba ou do sistema. Se Discord e jogo usam a mesma saída, as vozes podem vir misturadas. O Himitsu não solicita seu microfone.</div>
+</section>
+<aside class="side"><h3>Participantes <span class="pill" id="count">0</span></h3><div id="people"></div><div class="notice" id="netnote">Conexão em tempo real. A qualidade e a quantidade de participantes dependem da rede e do servidor.</div></aside>
+</div>
+</main></div>
+<div class="modalbg" id="modal"><div class="modal"><h3>Nova transmissão</h3><p class="muted">Depois, o navegador mostrará as telas, janelas ou abas disponíveis.</p><label><input id="audio" type="checkbox"> Compartilhar áudio, se disponível</label><p class="muted" style="font-size:12px">Não ativamos o microfone. A captura de áudio do sistema pode incluir sons do Discord se estiverem na mesma saída.</p><div class="modalfoot"><button class="secondary" id="cancel">Cancelar</button><button id="start">Escolher tela ou janela</button></div></div></div><div class="toast" id="toast"></div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const $=id=>document.getElementById(id);let socket,roomCode="",myId="",myName="",localStream=null,peers=new Map(),remoteStreams=new Map(),selectedId=null;
+const rtcConfig={iceServers:[{urls:"stun:stun.l.google.com:19302"}]};
+function say(s){let t=$("toast");t.textContent=s;t.style.display="block";clearTimeout(window.tt);window.tt=setTimeout(()=>t.style.display="none",3000)}
+function connect(){socket=io();socket.on("connect",()=>{$("connection").textContent="● Conectado ao servidor";$("connection").style.color="#4ade80"});socket.on("disconnect",()=>{$("connection").textContent="● Reconectando...";$("connection").style.color="#fbbf24"});socket.on("joined",({id,participants})=>{myId=id;participants.forEach(p=>addPerson(p));renderPeople();});socket.on("peer-joined",p=>{addPerson(p);renderPeople();say(p.name+" entrou na sala")});socket.on("peer-left",id=>{removePeer(id);renderPeople()});socket.on("signal",async({from,data})=>{let pc=getPeer(from);try{if(data.description){await pc.setRemoteDescription(data.description);if(data.description.type==="offer"){let answer=await pc.createAnswer();await pc.setLocalDescription(answer);socket.emit("signal",{to:from,data:{description:pc.localDescription}})}}else if(data.candidate){await pc.addIceCandidate(data.candidate)}}catch(e){console.error(e)}});socket.on("peer-info",async({id,name})=>{if(!people.has(id))addPerson({id,name});renderPeople();try{await makeOffer(id)}catch(e){console.error("Falha ao iniciar conexão",e)}});socket.on("error-message",m=>say(m))}
+function addPerson(p){people.set(p.id,p)}
+let people=new Map();
+function renderPeople(){$("count").textContent=people.size;$("roomMeta").textContent="Código: "+roomCode+" · "+people.size+" participante(s)";$("people").innerHTML=[...people.values()].map(p=>`<div class="person">◉ ${esc(p.name)} ${p.id===myId?'<span class="pill">(você)</span>':''}</div>`).join("")}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function getPeer(id){if(peers.has(id))return peers.get(id);let pc=new RTCPeerConnection(rtcConfig);peers.set(id,pc);pc.onicecandidate=e=>{if(e.candidate)socket.emit("signal",{to:id,data:{candidate:e.candidate}})};pc.ontrack=e=>{let s=e.streams[0];remoteStreams.set(id,{stream:s,name:people.get(id)?.name||"Participante"});renderStreams();if(!selectedId)selectStream(id)};pc.onconnectionstatechange=()=>{if(pc.connectionState==="failed")say("Conexão com um participante falhou. Pode ser necessário um servidor TURN.")};pc.addTransceiver("video",{direction:"recvonly"});pc.addTransceiver("audio",{direction:"recvonly"});if(localStream){for(const track of localStream.getTracks()){const sender=pc.getSenders().find(s=>s.track?.kind===track.kind)||pc.getTransceivers().find(t=>t.receiver.track.kind===track.kind)?.sender;if(sender){sender.replaceTrack(track);const trans=pc.getTransceivers().find(t=>t.sender===sender);if(trans)trans.direction="sendrecv"}}}return pc}
+async function makeOffer(id){let pc=getPeer(id);let offer=await pc.createOffer();await pc.setLocalDescription(offer);socket.emit("signal",{to:id,data:{description:pc.localDescription}})}
+async function renegotiateAll(){for(const [id,pc] of peers){try{const offer=await pc.createOffer();await pc.setLocalDescription(offer);socket.emit("signal",{to:id,data:{description:pc.localDescription}})}catch(e){console.error(e)}}}
+async function enter(code){myName=prompt("Como você quer aparecer na sala?","Participante")?.trim()||"Participante";roomCode=code.toUpperCase();$("home").style.display="none";$("room").style.display="block";$("roomTitle").textContent="Sala "+roomCode;history.replaceState(null,"","#"+roomCode);if(!socket)connect();socket.emit("join-room",{room:roomCode,name:myName});}
+$("create").onclick=()=>enter(Math.random().toString(36).slice(2,8).toUpperCase());$("join").onclick=()=>{let c=$("codeInput").value.trim();if(c)enter(c);else say("Digite o código da sala.")};
+$("copy").onclick=async()=>{let url=location.origin+"/#"+roomCode;try{await navigator.clipboard.writeText("Entre na minha sala Himitsu: "+url+" — Código: "+roomCode);say("Convite copiado")}catch(e){say("Código da sala: "+roomCode)}};
+$("leave").onclick=()=>{stopShare();if(socket)socket.emit("leave-room");peers.forEach(p=>p.close());peers.clear();remoteStreams.clear();people.clear();$("room").style.display="none";$("home").style.display="block";history.replaceState(null,"",location.pathname)};
+$("share").onclick=()=> $("modal").style.display="flex";$("cancel").onclick=()=> $("modal").style.display="none";
+$("start").onclick=async()=>{ $("modal").style.display="none";try{localStream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30},audio:$("audio").checked});localStream.getTracks().forEach(t=>t.onended=stopShare);for(let [id,pc] of peers){for(const track of localStream.getTracks()){const trans=pc.getTransceivers().find(t=>t.receiver.track.kind===track.kind);if(trans){await trans.sender.replaceTrack(track);trans.direction="sendrecv"}}}await renegotiateAll();$("stop").disabled=false;$("share").textContent="Transmitindo";localStream.getVideoTracks()[0].onended=stopShare;renderStreams();selectStream(myId);socket.emit("sharing",{sharing:true});}catch(e){localStream=null;if(e.name!=="NotAllowedError")say("Não foi possível iniciar: "+e.message)}};
+function stopShare(){if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null}for(let [id,pc] of peers){for(const trans of pc.getTransceivers()){if(trans.sender.track){trans.sender.replaceTrack(null);trans.direction="recvonly"}}}if(peers.size)renegotiateAll(); $("stop").disabled=true;$("share").textContent="▣ Compartilhar tela";if(socket?.connected)socket.emit("sharing",{sharing:false});renderStreams();if(selectedId===myId){selectedId=null;showEmpty()}}
+$("stop").onclick=stopShare;
+function renderStreams(){let items=[];if(localStream)items.push({id:myId,name:"Você",stream:localStream});for(let [id,v] of remoteStreams)items.push({id,name:v.name,stream:v.stream});$("streams").innerHTML=items.map(x=>`<button class="tile ${selectedId===x.id?'active':''}" data-id="${x.id}"><video autoplay playsinline muted></video><div>${esc(x.name)}</div></button>`).join("");[...$("streams").querySelectorAll(".tile")].forEach((el,i)=>{let x=items[i];el.querySelector("video").srcObject=x.stream;el.onclick=()=>selectStream(x.id)})}
+function selectStream(id){let s=id===myId?localStream:remoteStreams.get(id)?.stream;if(!s)return;selectedId=id;let old=$("stage").querySelector("video");if(old)old.remove();let v=document.createElement("video");v.autoplay=true;v.playsInline=true;v.srcObject=s;v.muted=(id===myId);$("stage").appendChild(v);$("empty").style.display="none";$("stagebar").style.display="flex";$("stageName").textContent=(id===myId?"Você":remoteStreams.get(id)?.name||"Participante");renderStreams()}
+function showEmpty(){$("stage").querySelectorAll("video").forEach(v=>v.remove());$("empty").style.display="block";$("stagebar").style.display="none"}
+$("fullscreen").onclick=()=>{let v=$("stage").querySelector("video");(v?.requestFullscreen?v.requestFullscreen():$("stage").requestFullscreen()).catch(()=>say("Tela cheia indisponível"))};
+function removePeer(id){let p=peers.get(id);if(p)p.close();peers.delete(id);remoteStreams.delete(id);people.delete(id);if(selectedId===id){selectedId=null;showEmpty()}renderStreams()}
+if(location.hash.length>1)$("codeInput").value=location.hash.slice(1);
+</script></body></html>
