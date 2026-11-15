@@ -52,14 +52,11 @@ function connect(){
     socket.on("connect",()=>{$("connection").textContent="● Conectado ao servidor";$("connection").style.color="#4ade80"});
     socket.on("disconnect",()=>{$("connection").textContent="● Reconectando...";$("connection").style.color="#fbbf24"});
     
-    socket.on("joined", async ({id, participants})=>{
+    socket.on("joined",({id, participants})=>{
         myId=id;
         people.clear();
         addPerson({id: myId, name: myName});
-        for(const p of participants){
-            addPerson(p);
-            try{ await makeOffer(p.id); }catch(e){console.error(e);}
-        }
+        participants.forEach(p=>addPerson(p));
         renderPeople();
     });
     
@@ -93,7 +90,7 @@ function connect(){
     socket.on("peer-info",async({id,name})=>{
         if(!people.has(id)) addPerson({id,name});
         renderPeople();
-        try{ await makeOffer(id); }catch(e){console.error("Falha ao iniciar conexão",e)}
+        try{await makeOffer(id)}catch(e){console.error("Falha ao iniciar conexão",e)}
     });
 
     socket.on("error-message",m=>say(m));
@@ -131,10 +128,19 @@ function getPeer(id){
         if(pc.connectionState==="failed") say("Conexão com um participante falhou.");
     };
     
+    // Pré-aloca transceivers de vídeo e áudio para evitar tela preta
+    pc.addTransceiver("video",{direction:"recvonly"});
+    pc.addTransceiver("audio",{direction:"recvonly"});
+    
     if(localStream){
-        localStream.getTracks().forEach(track=>{
-            pc.addTrack(track, localStream);
-        });
+        for(const track of localStream.getTracks()){
+            const sender=pc.getSenders().find(s=>s.track?.kind===track.kind)||pc.getTransceivers().find(t=>t.receiver.track.kind===track.kind)?.sender;
+            if(sender){
+                sender.replaceTrack(track);
+                const trans=pc.getTransceivers().find(t=>t.sender===sender);
+                if(trans) trans.direction="sendrecv";
+            }
+        }
     }
     return pc;
 }
@@ -206,9 +212,14 @@ $("start").onclick=async()=>{
         localStream.getVideoTracks()[0].onended=stopShare;
         
         for(let [id,pc] of peers){
-            localStream.getTracks().forEach(track=>{
-                pc.addTrack(track, localStream);
-            });
+            for(const track of localStream.getTracks()){
+                const sender=pc.getSenders().find(s=>s.track?.kind===track.kind)||pc.getTransceivers().find(t=>t.receiver.track.kind===track.kind)?.sender;
+                if(sender){
+                    sender.replaceTrack(track);
+                    const trans=pc.getTransceivers().find(t=>t.sender===sender);
+                    if(trans) trans.direction="sendrecv";
+                }
+            }
         }
         await renegotiateAll();
         $("stop").disabled=false;
@@ -228,9 +239,12 @@ function stopShare(){
         localStream=null;
     }
     for(let [id,pc] of peers){
-        pc.getSenders().forEach(sender=>{
-            if(sender.track) pc.removeTrack(sender);
-        });
+        for(const trans of pc.getTransceivers()){
+            if(trans.sender && trans.sender.track){
+                trans.sender.replaceTrack(null);
+                trans.direction="recvonly";
+            }
+        }
     }
     if(peers.size) renegotiateAll();
     $("stop").disabled=true;
