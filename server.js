@@ -6,42 +6,62 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Servir arquivos estáticos da pasta public
 app.use(express.static('public'));
+
+const rooms = new Map(); // roomCode -> Map(socketId -> {id, name})
 
 io.on('connection', (socket) => {
     console.log(`Usuário conectado: ${socket.id}`);
+    let currentRoom = null;
+    let currentName = null;
 
-    socket.on('join-room', (roomID) => {
-        socket.join(roomID);
-        // Informa aos outros usuários na sala que um novo participante entrou
-        socket.to(roomID).emit('user-joined', socket.id);
+    socket.on('join-room', ({ room, name }) => {
+        currentRoom = room;
+        currentName = name || 'Participante';
+        socket.join(room);
 
-        socket.on('offer', (payload) => {
-            io.to(payload.target).emit('offer', {
-                signal: payload.signal,
-                callerID: socket.id
-            });
+        if (!rooms.has(room)) {
+            rooms.set(room, new Map());
+        }
+        const roomUsers = rooms.get(room);
+
+        // Avisa os outros que um novo participante entrou
+        socket.to(room).emit('peer-joined', { id: socket.id, name: currentName });
+        socket.to(room).emit('peer-info', { id: socket.id, name: currentName });
+
+        // Monta a lista de quem já está na sala para o novo usuário
+        const participants = [];
+        roomUsers.forEach((userInfo) => {
+            participants.push(userInfo);
         });
 
-        socket.on('answer', (payload) => {
-            io.to(payload.target).emit('answer', {
-                signal: payload.signal,
-                id: socket.id
-            });
-        });
+        // Adiciona o novo usuário na lista da sala
+        roomUsers.set(socket.id, { id: socket.id, name: currentName });
 
-        socket.on('ice-candidate', (incoming) => {
-            io.to(incoming.target).emit('ice-candidate', {
-                candidate: incoming.candidate,
-                id: socket.id
-            });
-        });
+        // Envia a confirmação e a lista atualizada para quem entrou
+        socket.emit('joined', { id: socket.id, participants });
+    });
 
-        socket.on('disconnect', () => {
-            socket.to(roomID).emit('user-disconnected', socket.id);
-            console.log(`Usuário desconectado: ${socket.id}`);
-        });
+    socket.on('signal', ({ to, data }) => {
+        io.to(to).emit('signal', { from: socket.id, data });
+    });
+
+    socket.on('sharing', (payload) => {
+        if (currentRoom) {
+            socket.to(currentRoom).emit('sharing', { id: socket.id, ...payload });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        if (currentRoom && rooms.has(currentRoom)) {
+            const roomUsers = rooms.get(currentRoom);
+            roomUsers.delete(socket.id);
+            io.to(currentRoom).emit('peer-left', socket.id);
+            if (roomUsers.size === 0) {
+                rooms.delete(currentRoom);
+            }
+        }
+        console.log(`Usuário desconectado: ${socket.id}`);
     });
 });
 
