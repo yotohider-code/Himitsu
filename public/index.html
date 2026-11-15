@@ -9,7 +9,8 @@
 @media(max-width:740px){.wrap{padding:15px}.cards,.layout{grid-template-columns:1fr}.hero{margin-top:30px}.roomhead{align-items:flex-start;flex-direction:column}.tools{width:100%}.tools button{flex:1}.side{order:2}.stage{aspect-ratio:4/3}}
 </style>
 </head>
-<body><div class="wrap">
+<body>
+<div class="wrap">
 <header class="top"><div class="brand">◈ HIMITSU</div><div class="status" id="connection">● Conectando...</div></header>
 <main id="home">
 <section class="hero"><div class="eyebrow">SCREEN SHARING PLATFORM</div><h1>Sua tela. Sua sala.<br><span style="color:#a78bfa">Sua conexão.</span></h1><p>Crie uma sala ou entre com um código para compartilhar telas com seu grupo.</p></section>
@@ -30,31 +31,292 @@
 </div>
 </main></div>
 <div class="modalbg" id="modal"><div class="modal"><h3>Nova transmissão</h3><p class="muted">Depois, o navegador mostrará as telas, janelas ou abas disponíveis.</p><label><input id="audio" type="checkbox"> Compartilhar áudio, se disponível</label><p class="muted" style="font-size:12px">Não ativamos o microfone. A captura de áudio do sistema pode incluir sons do Discord se estiverem na mesma saída.</p><div class="modalfoot"><button class="secondary" id="cancel">Cancelar</button><button id="start">Escolher tela ou janela</button></div></div></div><div class="toast" id="toast"></div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const $=id=>document.getElementById(id);let socket,roomCode="",myId="",myName="",localStream=null,peers=new Map(),remoteStreams=new Map(),selectedId=null;
-const rtcConfig={iceServers:[{urls:"stun:stun.l.google.com:19302"}]};
-function say(s){let t=$("toast");t.textContent=s;t.style.display="block";clearTimeout(window.tt);window.tt=setTimeout(()=>t.style.display="none",3000)}
-function connect(){socket=io();socket.on("connect",()=>{$("connection").textContent="● Conectado ao servidor";$("connection").style.color="#4ade80"});socket.on("disconnect",()=>{$("connection").textContent="● Reconectando...";$("connection").style.color="#fbbf24"});socket.on("joined",({id,participants})=>{myId=id;participants.forEach(p=>addPerson(p));renderPeople();});socket.on("peer-joined",p=>{addPerson(p);renderPeople();say(p.name+" entrou na sala")});socket.on("peer-left",id=>{removePeer(id);renderPeople()});socket.on("signal",async({from,data})=>{let pc=getPeer(from);try{if(data.description){await pc.setRemoteDescription(data.description);if(data.description.type==="offer"){let answer=await pc.createAnswer();await pc.setLocalDescription(answer);socket.emit("signal",{to:from,data:{description:pc.localDescription}})}}else if(data.candidate){await pc.addIceCandidate(data.candidate)}}catch(e){console.error(e)}});socket.on("peer-info",async({id,name})=>{if(!people.has(id))addPerson({id,name});renderPeople();try{await makeOffer(id)}catch(e){console.error("Falha ao iniciar conexão",e)}});socket.on("error-message",m=>say(m))}
-function addPerson(p){people.set(p.id,p)}
+const $=id=>document.getElementById(id);
+let socket, roomCode="", myId="", myName="", localStream=null, peers=new Map(), remoteStreams=new Map(), selectedId=null;
 let people=new Map();
-function renderPeople(){$("count").textContent=people.size;$("roomMeta").textContent="Código: "+roomCode+" · "+people.size+" participante(s)";$("people").innerHTML=[...people.values()].map(p=>`<div class="person">◉ ${esc(p.name)} ${p.id===myId?'<span class="pill">(você)</span>':''}</div>`).join("")}
+const rtcConfig={iceServers:[{urls:"stun:stun.l.google.com:19302"}]};
+
+function say(s){
+    let t=$("toast");
+    t.textContent=s;
+    t.style.display="block";
+    clearTimeout(window.tt);
+    window.tt=setTimeout(()=>t.style.display="none",3000);
+}
+
+function connect(){
+    socket=io();
+    socket.on("connect",()=>{$("connection").textContent="● Conectado ao servidor";$("connection").style.color="#4ade80"});
+    socket.on("disconnect",()=>{$("connection").textContent="● Reconectando...";$("connection").style.color="#fbbf24"});
+    
+    socket.on("joined",({id, participants})=>{
+        myId=id;
+        people.clear();
+        addPerson({id: myId, name: myName});
+        participants.forEach(p=>addPerson(p));
+        renderPeople();
+    });
+    
+    socket.on("peer-joined",p=>{
+        addPerson(p);
+        renderPeople();
+        say(p.name+" entrou na sala");
+    });
+    
+    socket.on("peer-left",id=>{
+        removePeer(id);
+        renderPeople();
+    });
+    
+    socket.on("signal",async({from,data})=>{
+        let pc=getPeer(from);
+        try{
+            if(data.description){
+                await pc.setRemoteDescription(new RTCSessionDescription(data.description));
+                if(data.description.type==="offer"){
+                    let answer=await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+                    socket.emit("signal",{to:from,data:{description:pc.localDescription}});
+                }
+            }else if(data.candidate){
+                await pc.addIceCandidate(data.candidate);
+            }
+        }catch(e){console.error(e)}
+    });
+    
+    socket.on("peer-info",async({id,name})=>{
+        if(!people.has(id)) addPerson({id,name});
+        renderPeople();
+        try{ await makeOffer(id); }catch(e){console.error("Falha ao iniciar conexão",e)}
+    });
+
+    socket.on("error-message",m=>say(m));
+}
+
+function addPerson(p){
+    if(p && p.id) people.set(p.id, p);
+}
+
+function renderPeople(){
+    $("count").textContent=people.size;
+    $("roomMeta").textContent="Código: "+roomCode+" · "+people.size+" participante(s)";
+    $("people").innerHTML=[...people.values()].map(p=>`<div class="person">◉ ${esc(p.name)} ${p.id===myId?'<span class="pill">(você)</span>':''}</div>`).join("");
+}
+
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function getPeer(id){if(peers.has(id))return peers.get(id);let pc=new RTCPeerConnection(rtcConfig);peers.set(id,pc);pc.onicecandidate=e=>{if(e.candidate)socket.emit("signal",{to:id,data:{candidate:e.candidate}})};pc.ontrack=e=>{let s=e.streams[0];remoteStreams.set(id,{stream:s,name:people.get(id)?.name||"Participante"});renderStreams();if(!selectedId)selectStream(id)};pc.onconnectionstatechange=()=>{if(pc.connectionState==="failed")say("Conexão com um participante falhou. Pode ser necessário um servidor TURN.")};pc.addTransceiver("video",{direction:"recvonly"});pc.addTransceiver("audio",{direction:"recvonly"});if(localStream){for(const track of localStream.getTracks()){const sender=pc.getSenders().find(s=>s.track?.kind===track.kind)||pc.getTransceivers().find(t=>t.receiver.track.kind===track.kind)?.sender;if(sender){sender.replaceTrack(track);const trans=pc.getTransceivers().find(t=>t.sender===sender);if(trans)trans.direction="sendrecv"}}}return pc}
-async function makeOffer(id){let pc=getPeer(id);let offer=await pc.createOffer();await pc.setLocalDescription(offer);socket.emit("signal",{to:id,data:{description:pc.localDescription}})}
-async function renegotiateAll(){for(const [id,pc] of peers){try{const offer=await pc.createOffer();await pc.setLocalDescription(offer);socket.emit("signal",{to:id,data:{description:pc.localDescription}})}catch(e){console.error(e)}}}
-async function enter(code){myName=prompt("Como você quer aparecer na sala?","Participante")?.trim()||"Participante";roomCode=code.toUpperCase();$("home").style.display="none";$("room").style.display="block";$("roomTitle").textContent="Sala "+roomCode;history.replaceState(null,"","#"+roomCode);if(!socket)connect();socket.emit("join-room",{room:roomCode,name:myName});}
-$("create").onclick=()=>enter(Math.random().toString(36).slice(2,8).toUpperCase());$("join").onclick=()=>{let c=$("codeInput").value.trim();if(c)enter(c);else say("Digite o código da sala.")};
-$("copy").onclick=async()=>{let url=location.origin+"/#"+roomCode;try{await navigator.clipboard.writeText("Entre na minha sala Himitsu: "+url+" — Código: "+roomCode);say("Convite copiado")}catch(e){say("Código da sala: "+roomCode)}};
-$("leave").onclick=()=>{stopShare();if(socket)socket.emit("leave-room");peers.forEach(p=>p.close());peers.clear();remoteStreams.clear();people.clear();$("room").style.display="none";$("home").style.display="block";history.replaceState(null,"",location.pathname)};
-$("share").onclick=()=> $("modal").style.display="flex";$("cancel").onclick=()=> $("modal").style.display="none";
-$("start").onclick=async()=>{ $("modal").style.display="none";try{localStream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30},audio:$("audio").checked});localStream.getTracks().forEach(t=>t.onended=stopShare);for(let [id,pc] of peers){for(const track of localStream.getTracks()){const trans=pc.getTransceivers().find(t=>t.receiver.track.kind===track.kind);if(trans){await trans.sender.replaceTrack(track);trans.direction="sendrecv"}}}await renegotiateAll();$("stop").disabled=false;$("share").textContent="Transmitindo";localStream.getVideoTracks()[0].onended=stopShare;renderStreams();selectStream(myId);socket.emit("sharing",{sharing:true});}catch(e){localStream=null;if(e.name!=="NotAllowedError")say("Não foi possível iniciar: "+e.message)}};
-function stopShare(){if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null}for(let [id,pc] of peers){for(const trans of pc.getTransceivers()){if(trans.sender.track){trans.sender.replaceTrack(null);trans.direction="recvonly"}}}if(peers.size)renegotiateAll(); $("stop").disabled=true;$("share").textContent="▣ Compartilhar tela";if(socket?.connected)socket.emit("sharing",{sharing:false});renderStreams();if(selectedId===myId){selectedId=null;showEmpty()}}
+
+function getPeer(id){
+    if(peers.has(id)) return peers.get(id);
+    let pc=new RTCPeerConnection(rtcConfig);
+    peers.set(id,pc);
+    
+    pc.onicecandidate=e=>{
+        if(e.candidate) socket.emit("signal",{to:id,data:{candidate:e.candidate}});
+    };
+    
+    pc.ontrack=e=>{
+        let s=e.streams[0];
+        remoteStreams.set(id,{stream:s, name:people.get(id)?.name || "Participante"});
+        renderStreams();
+        if(!selectedId) selectStream(id);
+    };
+    
+    pc.onconnectionstatechange=()=>{
+        if(pc.connectionState==="failed") say("Conexão com um participante falhou.");
+    };
+    
+    pc.addTransceiver("video",{direction:"recvonly"});
+    pc.addTransceiver("audio",{direction:"recvonly"});
+    
+    if(localStream){
+        for(const track of localStream.getTracks()){
+            const sender=pc.getSenders().find(s=>s.track?.kind===track.kind)||pc.getTransceivers().find(t=>t.receiver.track.kind===track.kind)?.sender;
+            if(sender){
+                sender.replaceTrack(track);
+                const trans=pc.getTransceivers().find(t=>t.sender===sender);
+                if(trans) trans.direction="sendrecv";
+            }
+        }
+    }
+    return pc;
+}
+
+async function makeOffer(id){
+    let pc=getPeer(id);
+    let offer=await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    socket.emit("signal",{to:id,data:{description:pc.localDescription}});
+}
+
+async function renegotiateAll(){
+    for(const [id,pc] of peers){
+        try{
+            const offer=await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit("signal",{to:id,data:{description:pc.localDescription}});
+        }catch(e){console.error(e)}
+    }
+}
+
+async function enter(code){
+    myName=prompt("Como você quer aparecer na sala?","Participante")?.trim()||"Participante";
+    roomCode=code.toUpperCase();
+    $("home").style.display="none";
+    $("room").style.display="block";
+    $("roomTitle").textContent="Sala "+roomCode;
+    history.replaceState(null,"","#"+roomCode);
+    if(!socket) connect();
+    socket.emit("join-room",{room:roomCode, name:myName});
+}
+
+$("create").onclick=()=>enter(Math.random().toString(36).slice(2,8).toUpperCase());
+$("join").onclick=()=>{
+    let c=$("codeInput").value.trim();
+    if(c) enter(c);
+    else say("Digite o código da sala.");
+};
+
+$("copy").onclick=async()=>{
+    let url=location.origin+"/#"+roomCode;
+    try{
+        await navigator.clipboard.writeText("Entre na minha sala Himitsu: "+url+" — Código: "+roomCode);
+        say("Convite copiado");
+    }catch(e){
+        say("Código da sala: "+roomCode);
+    }
+};
+
+$("leave").onclick=()=>{
+    stopShare();
+    if(socket) socket.emit("leave-room");
+    peers.forEach(p=>p.close());
+    peers.clear();
+    remoteStreams.clear();
+    people.clear();
+    $("room").style.display="none";
+    $("home").style.display="block";
+    history.replaceState(null,"",location.pathname);
+};
+
+$("share").onclick=()=> $("modal").style.display="flex";
+$("cancel").onclick=()=> $("modal").style.display="none";
+
+$("start").onclick=async()=>{
+    $("modal").style.display="none";
+    try{
+        localStream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30},audio:$("audio").checked});
+        localStream.getVideoTracks()[0].onended=stopShare;
+        
+        for(let [id,pc] of peers){
+            for(const track of localStream.getTracks()){
+                const trans=pc.getTransceivers().find(t=>t.receiver.track.kind===track.kind);
+                if(trans){
+                    await trans.sender.replaceTrack(track);
+                    trans.direction="sendrecv";
+                }
+            }
+        }
+        await renegotiateAll();
+        $("stop").disabled=false;
+        $("share").textContent="Transmitindo";
+        renderStreams();
+        selectStream(myId);
+        socket.emit("sharing",{sharing:true});
+    }catch(e){
+        localStream=null;
+        if(e.name!=="NotAllowedError") say("Não foi possível iniciar: "+e.message);
+    }
+};
+
+function stopShare(){
+    if(localStream){
+        localStream.getTracks().forEach(t=>t.stop());
+        localStream=null;
+    }
+    for(let [id,pc] of peers){
+        for(const trans of pc.getTransceivers()){
+            if(trans.sender.track){
+                trans.sender.replaceTrack(null);
+                trans.direction="recvonly";
+            }
+        }
+    }
+    if(peers.size) renegotiateAll();
+    $("stop").disabled=true;
+    $("share").textContent="▣ Compartilhar tela";
+    if(socket?.connected) socket.emit("sharing",{sharing:false});
+    renderStreams();
+    if(selectedId===myId){
+        selectedId=null;
+        showEmpty();
+    }
+}
 $("stop").onclick=stopShare;
-function renderStreams(){let items=[];if(localStream)items.push({id:myId,name:"Você",stream:localStream});for(let [id,v] of remoteStreams)items.push({id,name:v.name,stream:v.stream});$("streams").innerHTML=items.map(x=>`<button class="tile ${selectedId===x.id?'active':''}" data-id="${x.id}"><video autoplay playsinline muted></video><div>${esc(x.name)}</div></button>`).join("");[...$("streams").querySelectorAll(".tile")].forEach((el,i)=>{let x=items[i];el.querySelector("video").srcObject=x.stream;el.onclick=()=>selectStream(x.id)})}
-function selectStream(id){let s=id===myId?localStream:remoteStreams.get(id)?.stream;if(!s)return;selectedId=id;let old=$("stage").querySelector("video");if(old)old.remove();let v=document.createElement("video");v.autoplay=true;v.playsInline=true;v.srcObject=s;v.muted=(id===myId);$("stage").appendChild(v);$("empty").style.display="none";$("stagebar").style.display="flex";$("stageName").textContent=(id===myId?"Você":remoteStreams.get(id)?.name||"Participante");renderStreams()}
-function showEmpty(){$("stage").querySelectorAll("video").forEach(v=>v.remove());$("empty").style.display="block";$("stagebar").style.display="none"}
-$("fullscreen").onclick=()=>{let v=$("stage").querySelector("video");(v?.requestFullscreen?v.requestFullscreen():$("stage").requestFullscreen()).catch(()=>say("Tela cheia indisponível"))};
-function removePeer(id){let p=peers.get(id);if(p)p.close();peers.delete(id);remoteStreams.delete(id);people.delete(id);if(selectedId===id){selectedId=null;showEmpty()}renderStreams()}
-if(location.hash.length>1)$("codeInput").value=location.hash.slice(1);
-</script></body></html>
+
+function renderStreams(){
+    let items=[];
+    if(localStream) items.push({id:myId, name:"Você", stream:localStream});
+    for(let [id,v] of remoteStreams) items.push({id, name:v.name, stream:v.stream});
+    
+    $("streams").innerHTML=items.map(x=>`<button class="tile ${selectedId===x.id?'active':''}" data-id="${x.id}"><video autoplay playsinline muted></video><div>${esc(x.name)}</div></button>`).join("");
+    
+    [...$("streams").querySelectorAll(".tile")].forEach((el,i)=>{
+        let x=items[i];
+        el.querySelector("video").srcObject=x.stream;
+        el.onclick=()=>selectStream(x.id);
+    });
+}
+
+function selectStream(id){
+    let s = (id===myId) ? localStream : remoteStreams.get(id)?.stream;
+    if(!s) return;
+    selectedId=id;
+    let old=$("stage").querySelector("video");
+    if(old) old.remove();
+    let v=document.createElement("video");
+    v.autoplay=true;
+    v.playsInline=true;
+    v.srcObject=s;
+    v.muted=(id===myId);
+    $("stage").insertBefore(v, $("empty"));
+    $("empty").style.display="none";
+    $("stagebar").style.display="flex";
+    $("stageName").textContent=(id===myId ? "Você" : remoteStreams.get(id)?.name || "Participante");
+    renderStreams();
+}
+
+function showEmpty(){
+    $("stage").querySelectorAll("video").forEach(v=>v.remove());
+    $("empty").style.display="block";
+    $("stagebar").style.display="none";
+}
+
+$("fullscreen").onclick=()=>{
+    let stageContainer = $("stage");
+    if (!document.fullscreenElement) {
+        (stageContainer.requestFullscreen ? stageContainer.requestFullscreen() : stageContainer.webkitRequestFullscreen?.()).catch(()=>say("Tela cheia indisponível"));
+    } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+    }
+};
+
+function removePeer(id){
+    let p=peers.get(id);
+    if(p) p.close();
+    peers.delete(id);
+    remoteStreams.delete(id);
+    people.delete(id);
+    if(selectedId===id){
+        selectedId=null;
+        showEmpty();
+    }
+    renderStreams();
+}
+
+if(location.hash.length>1) $("codeInput").value=location.hash.slice(1);
+</script>
+</body>
+</html>
